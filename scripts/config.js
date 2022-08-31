@@ -26,7 +26,13 @@ const weexFactoryPlugin = {
 }
 
 const aliases = require('./alias')
+
 const resolve = p => {
+  // 根据路径中的前半部分去alias中找别名  例如：web/entry-runtime-with-compiler.js
+  /**
+   * aliases[base]返回：src/platforms/web
+   * 拼接：src/platforms/web   entry-runtime-with-compiler.js
+   */
   const base = p.split('/')[0]
   if (aliases[base]) {
     return path.resolve(aliases[base], p.slice(base.length + 1))
@@ -35,6 +41,7 @@ const resolve = p => {
   }
 }
 
+// builds是一个集合（object）
 const builds = {
   // Runtime only (CommonJS). Used by bundlers e.g. Webpack & Browserify
   'web-runtime-cjs-dev': {
@@ -120,6 +127,14 @@ const builds = {
     banner
   },
   // Runtime+compiler development build (Browser)
+  /**
+   * entry:入口
+   * dest：出口
+   * format：模块化方式
+   * env：打包方式-开发/生产模式
+   * alias：别名
+   * banner：文件头
+   */
   'web-full-dev': {
     entry: resolve('web/entry-runtime-with-compiler.js'),
     dest: resolve('dist/vue.js'),
@@ -263,6 +278,8 @@ function genConfig (name) {
   return config
 }
 
+// 判断环境变量是否有TARGET
+// 如果有使用genConfig生成rollup配置文件
 if (process.env.TARGET) {
   module.exports = genConfig(process.env.TARGET)
 } else {
