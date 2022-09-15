@@ -37,6 +37,7 @@ extend(Vue.options.components, platformComponents)
 
 // install platform patch function
 // Vue的原型上注册 __patch__函数，patch是将Vdom转换为真实DOM
+// inBrowser:判断浏览器环境
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 
 // public mount method

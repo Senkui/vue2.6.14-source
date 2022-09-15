@@ -16,14 +16,17 @@ const idToTemplate = cached(id => {
 })
 
 // 保留vue的$mount方法，改写并增强它的功能
+//hydrating： 非ssr情况下为false，ssr为true
 const mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
 ): Component {
+  // 获取el对象
   el = el && query(el)
 
   /* istanbul ignore if */
+  // el不能为html、body
   if (el === document.body || el === document.documentElement) {
     process.env.NODE_ENV !== 'production' && warn(
       `Do not mount Vue to <html> or <body> - mount to normal elements instead.`
@@ -33,12 +36,11 @@ Vue.prototype.$mount = function (
 
   const options = this.$options
   // resolve template/el and convert to render function
-
   // 把template/el 模板转换为render函数
+  // render 不存在
   if (!options.render) {
     let template = options.template
-
-    // 如果模板存在
+    // 判断模板存在
     if (template) {
       // 如果模板是string
       if (typeof template === 'string') {
