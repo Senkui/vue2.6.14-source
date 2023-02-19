@@ -15,32 +15,36 @@ export function initExtend (Vue: GlobalAPI) {
 
   /**
    * Class inheritance
+   * 传一个对象，返回一个函数(子的构造器)
    */
   Vue.extend = function (extendOptions: Object): Function {
     extendOptions = extendOptions || {}
-    // Vue 构造函数
+    // Vue 构造函数，this指向Vue
     const Super = this
     const SuperId = Super.cid
-    // 从缓存中加载组件的构造函数
+    // 从缓存中加载组件的构造函数,做了一层缓存的优化
     const cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {})
     if (cachedCtors[SuperId]) {
       return cachedCtors[SuperId]
     }
 
+    // 组件name
     const name = extendOptions.name || Super.options.name
     if (process.env.NODE_ENV !== 'production' && name) {
-      // 如果是开发环境，验证组件的名称 
+      // 开发环境，验证组件的名称 : 命名格式、是否冲突
       validateComponentName(name)
     }
 
+    // 定义子的构造函数
     const Sub = function VueComponent (options) {
       // 调用 _init() 初始化
       this._init(options)
     }
-    // 原型继承自 Vue
+    // 原型继承自 Vue：子的原型指向父的原型
     Sub.prototype = Object.create(Super.prototype)
     Sub.prototype.constructor = Sub
     Sub.cid = cid++
+
     // 合并options
     Sub.options = mergeOptions(
       Super.options,
@@ -51,6 +55,7 @@ export function initExtend (Vue: GlobalAPI) {
     // For props and computed properties, we define the proxy getters on
     // the Vue instances at extension time, on the extended prototype. This
     // avoids Object.defineProperty calls for each instance created.
+    // 初始化props、computed
     if (Sub.options.props) {
       initProps(Sub)
     }
@@ -59,6 +64,7 @@ export function initExtend (Vue: GlobalAPI) {
     }
 
     // allow further extension/mixin/plugin usage
+    // 把全局的方法赋值给Sub
     Sub.extend = Super.extend
     Sub.mixin = Super.mixin
     Sub.use = Super.use

@@ -18,6 +18,7 @@ import {
   invokeWithErrorHandling
 } from '../util/index'
 
+// 当前正在激活的vm实例
 export let activeInstance: any = null
 export let isUpdatingChildComponent: boolean = false
 
@@ -33,6 +34,7 @@ export function initLifecycle (vm: Component) {
   const options = vm.$options
 
   // locate first non-abstract parent
+  // 建立实例的父子关系
   let parent = options.parent
   if (parent && !options.abstract) {
     while (parent.$options.abstract && parent.$parent) {

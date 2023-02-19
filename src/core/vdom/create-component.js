@@ -33,6 +33,7 @@ import {
 } from 'weex/runtime/recycle-list/render-component-template'
 
 // inline hooks to be invoked on component VNodes during patch
+// key 有init prepatch insert destory
 const componentVNodeHooks = {
   init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
     if (
@@ -40,7 +41,8 @@ const componentVNodeHooks = {
       !vnode.componentInstance._isDestroyed &&
       vnode.data.keepAlive
     ) {
-      // kept-alive components, treat as a patch
+      // kept-alive components, treat as a patch 
+      // kept-alive 的逻辑
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
     } else {
@@ -98,6 +100,15 @@ const componentVNodeHooks = {
 
 const hooksToMerge = Object.keys(componentVNodeHooks)
 
+/**
+ * 组件vnode的创建过程：组件的构造器是继承自Vue，组件vnode的hook
+ * @param {*} Ctor 
+ * @param {*} data 
+ * @param {上下文实例} context 
+ * @param {组件子的vnode} children 
+ * @param {*} tag 
+ * @returns
+ */
 export function createComponent (
   Ctor: Class<Component> | Function | Object | void,
   data: ?VNodeData,
@@ -109,15 +120,18 @@ export function createComponent (
     return
   }
 
+  // baseCtor是Vue 构造器
   const baseCtor = context.$options._base
 
   // plain options object: turn it into a constructor
+  // 构造器转换
   if (isObject(Ctor)) {
     Ctor = baseCtor.extend(Ctor)
   }
 
   // if at this stage it's not a constructor or an async component factory,
   // reject.
+  // 构造器不是一个函数 抛出警告
   if (typeof Ctor !== 'function') {
     if (process.env.NODE_ENV !== 'production') {
       warn(`Invalid Component definition: ${String(Ctor)}`, context)
@@ -126,6 +140,7 @@ export function createComponent (
   }
 
   // async component
+  // 异步组件处理
   let asyncFactory
   if (isUndef(Ctor.cid)) {
     asyncFactory = Ctor
@@ -148,28 +163,34 @@ export function createComponent (
 
   // resolve constructor options in case global mixins are applied after
   // component constructor creation
+  // 重新解析options，因为后面可能受mixins的影响
   resolveConstructorOptions(Ctor)
 
   // transform component v-model data into props & events
+  // 对v-model的转换
   if (isDef(data.model)) {
     transformModel(Ctor.options, data)
   }
 
   // extract props
+  // props 处理成propsData
   const propsData = extractPropsFromVNodeData(data, Ctor, tag)
 
   // functional component
+  // 函数组件的处理
   if (isTrue(Ctor.options.functional)) {
     return createFunctionalComponent(Ctor, propsData, data, context, children)
   }
 
   // extract listeners, since these needs to be treated as
   // child component listeners instead of DOM listeners
+  // 自定义事件的处理
   const listeners = data.on
   // replace with listeners with .native modifier
   // so it gets processed during parent component patch.
   data.on = data.nativeOn
 
+  // 抽象组件
   if (isTrue(Ctor.options.abstract)) {
     // abstract components do not keep anything
     // other than props & listeners & slot
@@ -183,9 +204,15 @@ export function createComponent (
   }
 
   // install component management hooks onto the placeholder node
+  // 安装组件钩子
   installComponentHooks(data)
 
   // return a placeholder vnode
+  /**
+   * 生成组件vnode
+   * 第三个参数undefined:组件vnode的children为空,组件vnode多一个componentOptions
+   * Ctor:构造器，listeners:事件
+   */
   const name = Ctor.options.name || tag
   const vnode = new VNode(
     `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
@@ -205,12 +232,19 @@ export function createComponent (
   return vnode
 }
 
+/**
+ * @param {组件vnode} vnode 
+ * @param {当前vm的实例} parent 
+ * @returns 返回子组件的实例
+ */
 export function createComponentInstanceForVnode (
   // we know it's MountedComponentVNode but flow doesn't
   vnode: any,
   // activeInstance in lifecycle state
   parent: any
 ): Component {
+
+  // _parentVnode：父vnode,占位父vnode,是一个占位节点
   const options: InternalComponentOptions = {
     _isComponent: true,
     _parentVnode: vnode,
@@ -222,9 +256,12 @@ export function createComponentInstanceForVnode (
     options.render = inlineTemplate.render
     options.staticRenderFns = inlineTemplate.staticRenderFns
   }
+
+  // 执行了子组件的 componentOptions 的Ctor , 也就是子的this._init(options)方法
   return new vnode.componentOptions.Ctor(options)
 }
 
+// 安装组件钩子
 function installComponentHooks (data: VNodeData) {
   const hooks = data.hook || (data.hook = {})
   for (let i = 0; i < hooksToMerge.length; i++) {
@@ -237,6 +274,7 @@ function installComponentHooks (data: VNodeData) {
   }
 }
 
+// 合并钩子：两个函数依次执行
 function mergeHook (f1: any, f2: any): Function {
   const merged = (a, b) => {
     // flow complains about extra args which is why we use any
